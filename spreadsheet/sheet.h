@@ -36,4 +36,5 @@ private:
     void InvalidateCacheRecursively(Cell* cell, std::unordered_set<Cell*>& visited) const;
     bool HasCircularDependency(Position pos, const std::vector<Position>& new_refs) const;
     bool DFS(Position current, Position target, std::unordered_set<Position, CellHasher>& visited) const;
+    void ValidatePosition(Position pos) const;
 };

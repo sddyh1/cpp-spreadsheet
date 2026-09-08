@@ -83,7 +83,13 @@ Cell::~Cell() {
 }
 
 void Cell::Set(std::string text) {
-    if (text.size() > 1 && text.front() == FORMULA_SIGN) {
+    if (text == GetText()) {
+        return;
+    }
+    if (text.empty()) {
+        impl_ = std::make_unique<EmptyImpl>();
+    }
+    else if (text.size() > 1 && text.front() == FORMULA_SIGN) {
         impl_ = std::make_unique<FormulaImpl>(text.substr(1));
     }
     else {
@@ -92,7 +98,7 @@ void Cell::Set(std::string text) {
 }
 
 void Cell::Clear() {
-    impl_ = std::make_unique<EmptyImpl>();
+    Set("");
 }
 
 

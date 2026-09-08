@@ -12,10 +12,11 @@ using namespace std::literals;
 
 Sheet::~Sheet() {}
 
+
+
 void Sheet::SetCell(Position pos, std::string text) {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position in SetCell");
-    }
+    ValidatePosition(pos);
+
     std::vector<Position> new_refs;
     if (text.size() > 1 && text.front() == FORMULA_SIGN) {
         std::unique_ptr<FormulaInterface> temp_formula = ParseFormula(text.substr(1));
@@ -41,9 +42,8 @@ void Sheet::SetCell(Position pos, std::string text) {
 }
 
 const CellInterface* Sheet::GetCell(Position pos) const {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position in GetCell");
-    }
+    ValidatePosition(pos);
+
     auto it = sheet_.find(pos);
 
     if (it == sheet_.end()) {
@@ -53,9 +53,8 @@ const CellInterface* Sheet::GetCell(Position pos) const {
 
 }
 CellInterface* Sheet::GetCell(Position pos) {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position in GetCell");
-    }
+    ValidatePosition(pos);
+
     auto it = sheet_.find(pos);
 
     if (it == sheet_.end()) {
@@ -65,9 +64,8 @@ CellInterface* Sheet::GetCell(Position pos) {
 }
 
 void Sheet::ClearCell(Position pos) {
-    if (!pos.IsValid()) {
-        throw InvalidPositionException("Invalid position in ClearCell");
-    }
+    ValidatePosition(pos);
+
     Cell* cell = GetConcreteCell(pos);
     if (cell == nullptr) {
         return;
@@ -201,6 +199,12 @@ bool Sheet::DFS(Position current, Position target, std::unordered_set<Position, 
         }
     }
     return false;
+}
+void Sheet::ValidatePosition(Position pos) const
+{
+    if (!pos.IsValid()) {
+        throw InvalidPositionException("Invalid position");
+    }
 }
 
 std::unique_ptr<SheetInterface> CreateSheet() {

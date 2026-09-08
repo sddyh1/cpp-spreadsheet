@@ -153,11 +153,18 @@ namespace ASTImpl {
                 case Add:      result = lhs + rhs; break;
                 case Subtract: result = lhs - rhs; break;
                 case Multiply: result = lhs * rhs; break;
-                case Divide:   result = lhs / rhs; break;
+                case Divide:   
+                    if (rhs == 0) {
+                        throw FormulaError(FormulaError::Category::Arithmetic);
+                    }
+
+                    result = lhs / rhs;
+                    break;
                 default:       assert(false);
                 }
 
                 if (!std::isfinite(result)) {
+                    //std::isfinite(inf) → false. std::isfinite(nan) → false (тут уже обрабатывается 0)
                     throw FormulaError(FormulaError::Category::Arithmetic);
                 }
                 return result;
