@@ -12,7 +12,7 @@ class Sheet;
 
 class Cell : public CellInterface {
 public:
-    Cell(Sheet& sheet);
+    Cell(Sheet& sheet, Position pos);
 
     ~Cell();
 
@@ -35,7 +35,12 @@ private:
     class FormulaImpl;
     std::unique_ptr<Impl> impl_;
 
+    void InvalidateCacheRecursively(std::unordered_set<Cell*>& visited);
+    bool DFS(Position current, std::unordered_set<Position, CellHasher>& visited) const;
+    bool HasCircularDependency(const std::vector<Position>& new_refs) const;
+
     Sheet& sheet_;
+    Position pos_;
     mutable std::optional<Value> cache_;
     std::unordered_set<Cell*> dependents_;
 };

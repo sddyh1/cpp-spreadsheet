@@ -73,9 +73,10 @@ private:
     std::unique_ptr<FormulaInterface> formula_;
 };
 
-Cell::Cell(Sheet& sheet)
+Cell::Cell(Sheet& sheet, Position pos)
     : impl_(std::make_unique<EmptyImpl>())
-    , sheet_(sheet) {
+    , sheet_(sheet)
+    , pos_(pos){
 }
 
 Cell::~Cell() {
@@ -83,9 +84,27 @@ Cell::~Cell() {
 }
 
 void Cell::Set(std::string text) {
+
     if (text == GetText()) {
         return;
     }
+
+    std::vector<Position> new_refs;
+
+    if (text.size() > 1 && text.front() == FORMULA_SIGN) {
+        std::unique_ptr<FormulaInterface> temp_formula = ParseFormula(text.substr(1));
+        new_refs = temp_formula->GetReferencedCells();
+    }
+
+    if (HasCircularDependency(new_refs)) {
+        throw CircularDependencyException("Circular Dependency");
+    }
+
+    std::vector<Position>old_refs = this->GetReferencedCells();
+    for (Position& old_ref : old_refs) {
+        sheet_.GetConcreteCell(old_ref)->RemoveDependent(this);
+    }
+
     if (text.empty()) {
         impl_ = std::make_unique<EmptyImpl>();
     }
@@ -95,9 +114,17 @@ void Cell::Set(std::string text) {
     else {
         impl_ = std::make_unique<TextImpl>(text);
     }
+
+    for (Position& new_ref : new_refs) {
+        sheet_.FindOrCreateCell(new_ref)->AddDependent(this);
+    }
+    std::unordered_set<Cell*> visited;
+    InvalidateCacheRecursively(visited);
+
 }
 
 void Cell::Clear() {
+
     Set("");
 }
 
@@ -143,4 +170,50 @@ bool Cell::IsReferenced() const
 void Cell::InvalidateCache()
 {
     cache_.reset();
+}
+
+void Cell::InvalidateCacheRecursively(std::unordered_set<Cell*>& visited)
+{
+    if (visited.find(this) != visited.end()) {
+        return;
+    }
+    visited.insert(this);
+    InvalidateCache();
+    const std::unordered_set<Cell*>& dependents = GetDependents();
+
+    for (Cell* dep : dependents) {
+        dep->InvalidateCacheRecursively(visited);
+    }
+}
+
+bool Cell::DFS(Position current, std::unordered_set<Position, CellHasher>& visited) const
+{
+    if (current == this->pos_) {
+        return true;
+    }
+    if (visited.find(current) != visited.end()) {
+        return false;
+    }
+    visited.insert(current);
+    const Cell* cell = sheet_.GetConcreteCell(current);
+    if (cell == nullptr) {
+        return false;
+    }
+    for (const Position& r : cell->GetReferencedCells()) {
+        if (this->DFS(r, visited)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Cell::HasCircularDependency( const std::vector<Position>& new_refs) const
+{
+    std::unordered_set<Position, CellHasher> visited;
+    for (const Position& ref : new_refs) {
+        if (this->DFS(ref, visited)) {
+            return true;
+        }
+    }
+    return false;
 }

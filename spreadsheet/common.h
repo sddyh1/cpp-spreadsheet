@@ -8,6 +8,7 @@
 #include <variant>
 #include <vector>
 
+
 // Позиция ячейки. Индексация с нуля.
 struct Position {
     int row = 0;
@@ -25,7 +26,11 @@ struct Position {
     static const int MAX_COLS = 16384;
     static const Position NONE;
 };
-
+struct CellHasher {
+    size_t operator()(const Position& pos)const {
+        return pos.row * Position::MAX_COLS + pos.col;
+    }
+};
 struct Size {
     int rows = 0;
     int cols = 0;
